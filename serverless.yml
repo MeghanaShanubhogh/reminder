@@ -1,0 +1,108 @@
+service: reminder-appt
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: us-east-1
+  memorySize: 128
+  environment:
+    reminder_table: ${self:service}-${opt:stage, self:provider.stage}
+
+custom:
+  allowedHeaders:
+    - Accept
+    - Content-Type
+    - app_user_name
+    - app_user_email
+
+plugins:
+  - serverless-offline
+  - serverless-plugin-common-excludes
+  - serverless-plugin-include-dependencies
+  - serverless-iam-roles-per-function
+
+
+functions:
+ createReminder:
+   handler: api/createReminder.handler
+   description: post /reminder
+   iamRoleStatements:
+     - Effect: Allow
+       Action: 
+        - dynamodb:Query
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.reminder_table}"
+   events:
+     - http:
+          method: post
+          path: /reminder
+          cors: 
+            origin: "*"
+            headers: ${self:custom.allowedHeaders}
+
+ notifyReminder:
+   handler: api/notifyReminder.handler
+   description: notify reminder using streams
+   iamRoleStatements:
+     - Effect: Allow
+       Action: 
+        - ses:*
+       Resource: "*"
+   events:
+     - stream:
+          arn: arn:aws:dynamodb:us-east-1:156326229501:table/reminder-appt-dev/stream/2023-04-30T14:54:37.672
+          filterPatterns:
+            - eventName: [REMOVE]
+          batchSize: 1
+          startingPosition: LATEST
+
+resources:
+  Resources:
+    ReminderTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        TableName: ${self:provider.environment.reminder_table}
+        AttributeDefinitions: 
+          - AttributeName: username
+            AttributeType: S
+          - AttributeName: expiry_date
+            AttributeType: N
+          - AttributeName: reminder_id
+            AttributeType: S
+        KeySchema: 
+          - AttributeName: username
+            KeyType: HASH
+          - AttributeName: expiry_date
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        GlobalSecondaryIndexes:
+          - IndexName: reminder_id-index
+            KeySchema: 
+              - AttributeName: reminder_id
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+        StreamSpecification:
+          StreamViewType: OLD_IMAGE
+        TimeToLiveSpecification:
+          AttributeName: expiry_date
+          Enabled: true
+
+	
+outputs:
+  ReminderTable:
+    Description: DynamoDB Table ARN created for this example
+    Value: !GetAtt ReminderTable.Arn
+  StreamARN:
+    Description: DynamoDB Table ARN created for this example
+    Value: !GetAtt ReminderTable.StreamArn
