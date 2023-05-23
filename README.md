@@ -1,4 +1,4 @@
-Introduction
+**#Reminder Application**
 The Reminder App Project is designed to allow users to set reminders and receive notifications via email or text message. The system will use AWS services including DynamoDB, Lambda, SES, SNS, S3, and CloudFront to achieve the requirements. The following is a technical specification of the Reminder App Project system architecture.
 
 Architecture
