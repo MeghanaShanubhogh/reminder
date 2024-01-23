@@ -4,13 +4,13 @@ The Reminder App Project is designed to allow users to set reminders and receive
 Architecture
 The Reminder App Project will consist of the following components:
 
-API Gateway\n
-Lambda function\n
-DynamoDB table\n
-SES or SNS service\n
-S3 bucket\n
-CloudFront distribution\n
-API Gateway\n
+- API Gateway
+- Lambda function
+- DynamoDB table
+- SES or SNS service
+- S3 bucket
+- CloudFront distribution
+- API Gateway
 The API Gateway will serve as the entry point for the Reminder App Project, allowing users to post new reminders. The API endpoint will be secured using AWS Identity and Access Management (IAM) policies.
 
 Lambda Function
